@@ -76,7 +76,7 @@ trait Laws {
    * For better type-safety, ''parents'' are only allowed to come from the same outer instance
    * of [[Laws]], whereas ''bases'' are allowed to come from anywhere.
    */
-  trait RuleSet {
+  trait RuleSet { outer =>
     def name: String
     def bases: Seq[(String, Laws#RuleSet)]
     def parents: Seq[RuleSet]
@@ -84,6 +84,13 @@ trait Laws {
 
     private def collectParentProps: SortedMap[String, Prop] =
       SortedMap(props: _*) ++ parents.flatMap(_.collectParentProps)
+
+    def filter(pred: String => Boolean): RuleSet = new RuleSet {
+      def name = outer.name
+      def bases = outer.bases.map { case (id, rs) => id -> rs.filter(pred) }
+      def parents = outer.parents.map(_.filter(pred))
+      def props = outer.props.filter { case (id, _) => pred(id) }
+    }
 
     /**
      * Assembles all properties. For the rules, see [[RuleSet]].
